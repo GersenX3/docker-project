@@ -2,7 +2,7 @@ version: "3.8"
 services:
   #--- Servicio y base de datos: contact-support-team
   contact-support-team:
-    image: gersenx3/contact-support-team:latest
+    image: gersenx3/contact-support-team:5.0.0
     container_name: contact-support-team
     ports:
       - "8000:8000"
@@ -26,7 +26,7 @@ services:
 
   #--- Servicio y base de datos: order-management
   order-management:
-    image: gersenx3/order-management:latest
+    image: gersenx3/order-management:5.0.0
     container_name: order-management
     ports:
       - "9090:9090"
@@ -59,7 +59,7 @@ services:
 
   #--- Servicio y base de datos: product-catalog
   product-catalog:
-    image: gersenx3/product-catalog:latest
+    image: gersenx3/product-catalog:5.0.0
     container_name: product-catalog
     ports:
       - "3001:3001"
@@ -83,7 +83,7 @@ services:
 
   #--- Servicio y base de datos: product-inventory
   product-inventory:
-    image: gersenx3/product-inventory:latest
+    image: gersenx3/product-inventory:5.0.0
     container_name: product-inventory
     ports:
       - "3002:3002"
@@ -113,7 +113,7 @@ services:
       
   #--- Servicio y base de datos: profile-management
   profile-management:
-    image: gersenx3/profile-management:latest
+    image: gersenx3/profile-management:5.0.0
     container_name: profile-management
     ports:
       - "3003:3003"
@@ -144,7 +144,7 @@ services:
 
   #--- Servicio y base de datos: shipping-and-handling
   shipping-and-handling:
-    image: gersenx3/shipping-and-handling:latest
+    image: gersenx3/shipping-and-handling:5.0.0
     container_name: shipping-and-handling
     ports:
       - "8080:8080"
@@ -166,7 +166,7 @@ services:
   
   #--- Servicio: ecommerce-ui (depende de múltiples servicios)
   ecommerce-ui:
-    image: gersenx3/ecommerce-ui:latest
+    image: gersenx3/ecommerce-ui:5.0.0
     container_name: ecommerce-ui
     depends_on:
       profile-management:
