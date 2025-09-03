@@ -1,0 +1,200 @@
+version: "3.8"
+services:
+  #--- Servicio y base de datos: contact-support-team
+  contact-support-team:
+    image: gersenx3/contact-support-team:latest
+    container_name: contact-support-team
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongo-contact-support-team:
+        condition: service_healthy
+    environment:
+      - MONGODB_HOST=mongo-contact-support-team
+      - MONGODB_PORT=27017
+      - MONGODB_DATABASE=contact_support
+  mongo-contact-support-team:
+    image: mongo
+    container_name: mongo-contact-support-team
+    volumes:
+      - mongo_contact_support_team_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.version()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  #--- Servicio y base de datos: order-management
+  order-management:
+    image: gersenx3/order-management:latest
+    container_name: order-management
+    ports:
+      - "9090:9090"
+    depends_on:
+      mongo-order-management:
+        condition: service_healthy
+      product-inventory:
+        condition: service_started
+      product-catalog:
+        condition: service_started
+      shipping-and-handling:
+        condition: service_started
+    environment:
+      - PRODUCT_INVENTORY_API_HOST=http://product-inventory
+      - PRODUCT_CATALOG_API_HOST=http://product-catalog
+      - SHIPPING_HANDLING_API_HOST=http://shipping-and-handling
+      - SPRING_DATA_MONGODB_URI=mongodb://mongo-order-management:27017/order_management
+  mongo-order-management:
+    image: mongo
+    container_name: mongo-order-management
+    environment:
+      - MONGODB_DATABASE=order_management
+    volumes:
+      - mongo_order_management_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.version()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  #--- Servicio y base de datos: product-catalog
+  product-catalog:
+    image: gersenx3/product-catalog:latest
+    container_name: product-catalog
+    ports:
+      - "3001:3001"
+    depends_on:
+      mongo-product-catalog:
+        condition: service_healthy
+    environment:
+      - MONGODB_HOST=mongo-product-catalog
+      - MONGODB_PORT=27017
+      - MONGODB_DATABASE=product_catalog
+  mongo-product-catalog:
+    image: mongo
+    container_name: mongo-product-catalog
+    volumes:
+      - mongo_product_catalog_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.version()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  #--- Servicio y base de datos: product-inventory
+  product-inventory:
+    image: gersenx3/product-inventory:latest
+    container_name: product-inventory
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres-product-inventory:
+        condition: service_healthy
+    environment:
+      - POSTGRES_HOST=postgres-product-inventory
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=product_inventory
+      - POSTGRES_USER=inventory_user
+      - POSTGRES_PASSWORD=inventory_password
+  postgres-product-inventory:
+    image: postgres
+    container_name: postgres-product-inventory
+    environment:
+      - POSTGRES_DB=product_inventory
+      - POSTGRES_USER=inventory_user
+      - POSTGRES_PASSWORD=inventory_password
+    volumes:
+      - postgres_product_inventory_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+  #--- Servicio y base de datos: profile-management
+  profile-management:
+    image: gersenx3/profile-management:latest
+    container_name: profile-management
+    ports:
+      - "3003:3003"
+    depends_on:
+      mysql-profile-management:
+        condition: service_healthy
+    environment:
+      - MYSQL_HOST=mysql-profile-management
+      - MYSQL_PORT=3306
+      - MYSQL_USER=profile_user
+      - MYSQL_PASSWORD=profile_password
+      - MYSQL_DATABASE=profile_management
+  mysql-profile-management:
+    image: mysql:8.0
+    container_name: mysql-profile-management
+    environment:
+      - MYSQL_DATABASE=profile_management
+      - MYSQL_USER=profile_user
+      - MYSQL_PASSWORD=profile_password
+      - MYSQL_ROOT_PASSWORD=profile_password
+    volumes:
+      - mysql_profile_management_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  #--- Servicio y base de datos: shipping-and-handling
+  shipping-and-handling:
+    image: gersenx3/shipping-and-handling:latest
+    container_name: shipping-and-handling
+    ports:
+      - "8080:8080"
+    depends_on:
+      mongo-shipping-and-handling:
+        condition: service_healthy
+    environment:
+      - MONGO_URI=mongodb://mongo-shipping-and-handling:27017
+  mongo-shipping-and-handling:
+    image: mongo
+    container_name: mongo-shipping-and-handling
+    volumes:
+      - mongo_shipping_and_handling_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.version()"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  
+  #--- Servicio: ecommerce-ui (depende de múltiples servicios)
+  ecommerce-ui:
+    image: gersenx3/ecommerce-ui:latest
+    container_name: ecommerce-ui
+    depends_on:
+      profile-management:
+        condition: service_started
+      product-catalog:
+        condition: service_started
+      product-inventory:
+        condition: service_started
+      order-management:
+        condition: service_started
+      shipping-and-handling:
+        condition: service_started
+      contact-support-team:
+        condition: service_started
+    ports:
+      - "4000:4000"
+    environment:
+      - REACT_APP_PROFILE_API_HOST=http://profile-management
+      - REACT_APP_PRODUCT_API_HOST=http://product-catalog
+      - REACT_APP_INVENTORY_API_HOST=http://product-inventory
+      - REACT_APP_ORDER_API_HOST=http://order-management
+      - REACT_APP_SHIPPING_API_HOST=http://shipping-and-handling
+      - REACT_APP_CONTACT_API_HOST=http://contact-support-team
+
+volumes:
+  mongo_product_catalog_data:
+  mongo_contact_support_team_data:
+  mongo_shipping_and_handling_data:
+  mongo_order_management_data:
+  mysql_profile_management_data:
+  postgres_product_inventory_data:
